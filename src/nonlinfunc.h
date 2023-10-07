@@ -1,0 +1,197 @@
+#ifndef NONLINFUNC_H
+#define NONLINFUNC_H
+
+#include <vector.hpp>
+#include <matrix.hpp>
+
+
+namespace ASC_ode
+{
+  using namespace ngbla;
+
+  class NonlinearFunction
+  {
+  public:
+    virtual ~NonlinearFunction() = default;
+    virtual size_t DimX() const = 0;
+    virtual size_t DimF() const = 0;
+    virtual void Evaluate (VectorView<double> x, VectorView<double> f) const = 0;
+    virtual void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const = 0;
+  };
+
+
+  class IdenticFunction : public NonlinearFunction
+  {
+    size_t n_;
+  public:
+    IdenticFunction (size_t n) : n_(n) { } 
+    size_t DimX() const override { return n_; }
+    size_t DimF() const override { return n_; }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      f = x;
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      df = 0.0;
+      df.Diag() = 1.0;
+    }
+  };
+
+
+
+  class ConstantFunction : public NonlinearFunction
+  {
+    Vector<> val_;
+  public:
+    ConstantFunction (VectorView<double> val) : val_(val) { }
+    void Set(VectorView<double> val) { val_ = val; }
+    VectorView<double> Get() const { return val_.View(); }
+    size_t DimX() const override { return val_.Size(); }
+    size_t DimF() const override { return val_.Size(); }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      f = val_;
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      df = 0.0;
+    }
+  };
+
+  
+  
+  class SumFunction : public NonlinearFunction
+  {
+    shared_ptr<NonlinearFunction> fa_, fb_;
+    double faca_, facb_;
+  public:
+    SumFunction (shared_ptr<NonlinearFunction> fa,
+                 shared_ptr<NonlinearFunction> fb,
+                 double faca, double facb)
+      : fa_(fa), fb_(fb), faca_(faca), facb_(facb) { } 
+    
+    size_t DimX() const override { return fa_->DimX(); }
+    size_t DimF() const override { return fa_->DimF(); }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      fa_->Evaluate(x, f);
+      f *= faca_;
+      Vector<> tmp(DimF());
+      fb_->Evaluate(x, tmp);
+      f += facb_*tmp;
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      fa_->EvaluateDeriv(x, df);
+      Matrix<> tmp(DimF(), DimX());
+      tmp *= faca_;
+      fb_->EvaluateDeriv(x, tmp);
+      df += facb_*tmp;
+    }
+  };
+
+
+  auto operator- (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
+  {
+    return make_shared<SumFunction>(fa, fb, 1, -1);
+  }
+
+  auto operator+ (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
+  {
+    return make_shared<SumFunction>(fa, fb, 1, 1);
+  }
+
+  
+  class ScaleFunction : public NonlinearFunction
+  {
+    shared_ptr<NonlinearFunction> fa_;
+    double fac_;
+  public:
+    ScaleFunction (shared_ptr<NonlinearFunction> fa,
+                    double fac)
+      : fa_(fa), fac_(fac) { } 
+    
+    size_t DimX() const override { return fa_->DimX(); }
+    size_t DimF() const override { return fa_->DimF(); }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      fa_->Evaluate(x, f);
+      f *= fac_;
+
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      fa_->EvaluateDeriv(x, df);
+      df *= fac_;
+    }
+  };
+
+
+  auto operator* (double a, shared_ptr<NonlinearFunction> f)
+  {
+    return make_shared<ScaleFunction>(f, a);
+  }
+
+
+
+
+  class EmbedFunction : public NonlinearFunction
+  {
+    shared_ptr<NonlinearFunction> fa_;
+    size_t firstx_, dimx_, firstf_, dimf_;
+    size_t nextx_, nextf_;
+  public:
+    EmbedFunction (shared_ptr<NonlinearFunction> fa,
+                   size_t firstx, size_t dimx,
+                   size_t firstf, size_t dimf)
+      : fa_(fa),
+        firstx_(firstx), dimx_(dimx), firstf_(firstf), dimf_(dimf),
+        nextx_(firstx+fa->DimX()), nextf_(firstf+fa->DimF())
+    { }
+    
+    size_t DimX() const override { return dimx_; }
+    size_t DimF() const override { return dimf_; }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      f = 0.0;
+      fa_->Evaluate(x.Range(firstx_, nextx_), f.Range(firstf_, nextf_));
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      df = 0;
+      fa_->EvaluateDeriv(x.Range(firstx_, nextx_),
+                         df.Rows(firstf_, nextf_).Cols(firstx_, nextx_));      
+    }
+  };
+
+
+  class ProjectFunction : public NonlinearFunction
+  {
+    shared_ptr<NonlinearFunction> fa_;
+    size_t first_, next_;
+  public:
+    ProjectFunction (shared_ptr<NonlinearFunction> fa,
+                   size_t first, size_t next)
+      : fa_(fa), first_(first), next_(next) { }
+    
+    size_t DimX() const override { return fa_->DimX(); }
+    size_t DimF() const override { return fa_->DimF(); }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      fa_->Evaluate(x, f);
+      f.Range(0, first_) = 0;
+      f.Range(next_, DimF()) = 0;
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      fa_->EvaluateDeriv(x, df);
+      df.Rows(0, first_) = 0;
+      df.Rows(next_, DimF()) = 0;
+    }
+  };
+
+  
+}
+
+#endif

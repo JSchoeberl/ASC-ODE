@@ -60,17 +60,19 @@ public:
     return { Connection::FIX, fixes.size()-1 };
   }
 
-  Connection AddMass (double mass, Vec<D> p)
+  Connection AddMass (Mass<D> m)
   {
-    masses.push_back (Mass<D>{mass, p});
+    masses.push_back (m);
     return { Connection::MASS, masses.size()-1 };
   }
-
+  
   size_t AddSpring (double length, double stiffness, Connection c1, Connection c2)
   {
     springs.push_back (Spring{length, stiffness, { c1, c2 } });
     return springs.size()-1;
   }
+
+  
 
   auto & Fixes() const { return fixes; } 
   auto & Masses() const { return masses; } 

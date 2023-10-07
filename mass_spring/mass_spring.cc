@@ -6,10 +6,10 @@ int main()
   MassSpringSystem<2> mss;
   mss.SetGravity( {0,-9.81} );
   auto fA = mss.AddFix( { 0.0, 0.0 } );
-  auto mA = mss.AddMass( 1, { 1.0, 0.0 } );
+  auto mA = mss.AddMass( { 1, { 1.0, 0.0 } } );
   mss.AddSpring (1, 10, fA, mA );
 
-  auto mB = mss.AddMass( 1, { 2.0, 0.0 } );
+  auto mB = mss.AddMass( { 1, { 2.0, 0.0 } } );
   mss.AddSpring (1, 20, mA, mB);
   
   cout << "mss: " << endl << mss << endl;

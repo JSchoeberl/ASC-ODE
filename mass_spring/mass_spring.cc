@@ -1,6 +1,5 @@
 #include "mass_spring.h"
 
-
 int main()
 {
   MassSpringSystem<2> mss;

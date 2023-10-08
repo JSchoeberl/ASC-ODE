@@ -21,7 +21,7 @@ public:
   Vec<D> pos;
 };
 
-class Connection
+class Connector
 {
 public:
   enum CONTYPE { FIX=1, MASS=2 };
@@ -29,7 +29,7 @@ public:
   size_t nr;
 };
 
-ostream & operator<< (ostream & ost, const Connection & con)
+ostream & operator<< (ostream & ost, const Connector & con)
 {
   ost << "type = " << int(con.type) << ", nr = " << con.nr;
   return ost;
@@ -40,7 +40,7 @@ class Spring
 public:
   double length;  
   double stiffness;
-  Connection connections[2];
+  Connector connections[2];
 };
 
 template <int D>
@@ -54,19 +54,19 @@ public:
   void SetGravity (Vec<D> _gravity) { gravity = _gravity; }
   Vec<D> Gravity() const { return gravity; }
   
-  Connection AddFix (Vec<D> p)
+  Connector AddFix (Vec<D> p)
   {
     fixes.push_back(p);
-    return { Connection::FIX, fixes.size()-1 };
+    return { Connector::FIX, fixes.size()-1 };
   }
 
-  Connection AddMass (Mass<D> m)
+  Connector AddMass (Mass<D> m)
   {
     masses.push_back (m);
-    return { Connection::MASS, masses.size()-1 };
+    return { Connector::MASS, masses.size()-1 };
   }
   
-  size_t AddSpring (double length, double stiffness, Connection c1, Connection c2)
+  size_t AddSpring (double length, double stiffness, Connector c1, Connector c2)
   {
     springs.push_back (Spring{length, stiffness, { c1, c2 } });
     return springs.size()-1;
@@ -123,20 +123,20 @@ public:
       {
         auto [c1,c2] = spring.connections;
         Vec<D> p1, p2;
-        if (c1.type == Connection::FIX)
+        if (c1.type == Connector::FIX)
           p1 = mss.Fixes()[c1.nr];
         else
           p1 = xmat.Row(c1.nr);
-        if (c2.type == Connection::FIX)
+        if (c2.type == Connector::FIX)
           p2 = mss.Fixes()[c2.nr];
         else
           p2 = xmat.Row(c2.nr);
 
         double force = spring.stiffness * (L2Norm(p1-p2)-spring.length);
         Vec<D> dir12 = 1.0/L2Norm(p1-p2) * (p2-p1);
-        if (c1.type == Connection::MASS)
+        if (c1.type == Connector::MASS)
           fmat.Row(c1.nr) += force*dir12;
-        if (c2.type == Connection::MASS)
+        if (c2.type == Connector::MASS)
           fmat.Row(c2.nr) -= force*dir12;
       }
 

@@ -44,17 +44,15 @@ namespace ASC_ode
   }
 
   void SolveODE_Verlet(double tend, double dt,
-                       VectorView<double> x,
+                       VectorView<double> x, VectorView<double> dx,
                        shared_ptr<NonlinearFunction> rhs,   // x->f(x)
                        std::function<void(double,VectorView<double>)> callback = nullptr)
   {
     auto xold = make_shared<ConstantFunction>(x);
-    auto xoldold = make_shared<ConstantFunction>(x);    
+    auto xoldold = make_shared<ConstantFunction>(Vector<double>(x-dt*dx));    
     auto xnew = make_shared<IdenticFunction>(x.Size());
     auto rhsold = make_shared<ConstantFunction>(x);        
     auto equ = xnew-2*xold+xoldold - dt*dt * rhsold;
-
-
     
     double t = 0;
     while (t < tend)
@@ -67,6 +65,7 @@ namespace ASC_ode
         if (callback) callback(t, x);
         t += dt;
       }
+    dx = 1/dt * (xold->Get()-xoldold->Get());
   }
 
   void SolveODE_Shake(double tend, double dt,

@@ -24,8 +24,9 @@ int main()
   double tend = 2*M_PI;
   double dt = tend/100;
   Vector<> x { 1, };
+  Vector<> dx { 0. };
   auto rhs = make_shared<RHS>();
   
-  SolveODE_Verlet(tend, dt, x, rhs,
+  SolveODE_Verlet(tend, dt, x, dx, rhs,
                   [](double t, VectorView<double> x) { cout << "t = " << t << ", x = " << x(0) << endl; });
 }

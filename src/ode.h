@@ -41,7 +41,7 @@ namespace ASC_ode
   {
     auto xold = make_shared<ConstantFunction>(x);
     auto xnew = make_shared<IdenticFunction>(x.Size());
-    auto equ = xnew-xold + dt * rhs;
+    auto equ = xnew-xold - dt * rhs;
 
     double t = 0;
     while (t < tend)

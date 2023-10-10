@@ -2,29 +2,39 @@
 #define ODE_h
 
 #include <functional>
+#include <exception>
 #include <calcinverse.hpp>
 
 
 namespace ASC_ode
 {
 
-  void NewtonSolver (shared_ptr<NonlinearFunction> func, VectorView<double> x)
+  void NewtonSolver (shared_ptr<NonlinearFunction> func, VectorView<double> x,
+                     double tol = 1e-10, int maxsteps = 10,
+                     std::function<void(int,double,VectorView<double>)> callback = nullptr)
   {
     Vector<> res(func->DimF());
     Matrix<> fprime(func->DimF(), func->DimX());
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < maxsteps; i++)
       {
         func->Evaluate(x, res);
         // cout << "|res| = " << L2Norm(res) << endl;
         func->EvaluateDeriv(x, fprime);
         CalcInverse(fprime);
         x -= fprime*res;
+
+        double err= L2Norm(res);
+        if (callback)
+          callback(i, err, x);
+        if (err < tol) return;
       }
+
+    throw std::domain_error("Newton did not converge");
   }
 
 
-  
+  // implicit Euler method for dx/dt = rhs(x)
   void SolveODE_IE(double tend, double dt,
                    VectorView<double> x, shared_ptr<NonlinearFunction> rhs,
                    std::function<void(double,VectorView<double>)> callback = nullptr)
@@ -43,6 +53,7 @@ namespace ASC_ode
       }
   }
 
+  // Vertlet method for d^2x/dt^2 = rhs
   void SolveODE_Verlet(double tend, double dt,
                        VectorView<double> x, VectorView<double> dx,
                        shared_ptr<NonlinearFunction> rhs,   // x->f(x)
@@ -68,6 +79,10 @@ namespace ASC_ode
     dx = 1/dt * (xold->Get()-xoldold->Get());
   }
 
+  // Shake algorithm = Vertlet+implicit constaints
+  // d^2x/dt`2 + (dg/dt)^T lam = f
+  // with g(x(t))) = 0
+  // have to provide function dg : (x, lambda) -> dg/dx, dg/dlam
   void SolveODE_Shake(double tend, double dt,
                       VectorView<double> xlam, size_t nx,
                       shared_ptr<NonlinearFunction> dLagrangef,

@@ -27,4 +27,9 @@ Simulate (mss, 0.1, 10)
 print ("state = ", mss.GetState())
 
 for m in mss.masses:
-    print (m.pos)
+    print (m.mass, m.pos)
+
+mss.masses[0].mass = 5
+
+for m in mss.masses:
+    print (m.mass, m.pos)

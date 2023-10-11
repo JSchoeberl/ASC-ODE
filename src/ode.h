@@ -111,4 +111,7 @@ namespace ASC_ode
 }
 
 
+// Newmark and generalized alpha:
+// https://miaodi.github.io/finite%20element%20method/newmark-generalized/
+
 #endif

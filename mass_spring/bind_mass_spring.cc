@@ -1,11 +1,13 @@
 #include <sstream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 
 #include "mass_spring.h"
 
 namespace py = pybind11;
 
+PYBIND11_MAKE_OPAQUE(std::vector<Mass<3>>);
 
 PYBIND11_MODULE(mass_spring, m) {
     m.doc() = "mass-spring-system simulator"; 
@@ -23,11 +25,14 @@ PYBIND11_MODULE(mass_spring, m) {
 
     
     py::class_<Mass<3>> (m, "Mass3d")
-      .def_property_readonly("mass",
-                             [](Mass<3> & m) { return m.mass; })
+      .def_property("mass",
+                    [](Mass<3> & m) { return m.mass; },
+                    [](Mass<3> & m, double mass) { m.mass = mass; })
       .def_property_readonly("pos",
                              [](Mass<3> & m) { return m.pos; });
     ;
+
+    py::bind_vector<std::vector<Mass<3>>>(m, "Masses3d");
     
     m.def("Mass", [](double m, std::array<double,3> p)
     {
@@ -71,7 +76,7 @@ PYBIND11_MODULE(mass_spring, m) {
       .def("Add", [](MassSpringSystem<3> & mss, Mass<3> m) { return mss.AddMass(m); })
       .def("Add", [](MassSpringSystem<3> & mss, Fix<3> f) { return mss.AddFix(f); })
       .def("Add", [](MassSpringSystem<3> & mss, Spring s) { return mss.AddSpring(s); })            
-      .def_property_readonly("masses", [](MassSpringSystem<3> & mss) { return mss.Masses(); })
+      .def_property_readonly("masses", [](MassSpringSystem<3> & mss) -> auto& { return mss.Masses(); })
       .def_property_readonly("fixes", [](MassSpringSystem<3> & mss) { return mss.Fixes(); })      
 
       .def("GetState", [] (MassSpringSystem<3> & mss) {

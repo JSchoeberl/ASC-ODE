@@ -92,12 +92,12 @@ namespace ASC_ode
   };
 
 
-  auto operator- (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
+  inline auto operator- (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
   {
     return make_shared<SumFunction>(fa, fb, 1, -1);
   }
 
-  auto operator+ (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
+  inline auto operator+ (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
   {
     return make_shared<SumFunction>(fa, fb, 1, 1);
   }
@@ -128,13 +128,52 @@ namespace ASC_ode
   };
 
 
-  auto operator* (double a, shared_ptr<NonlinearFunction> f)
+  inline auto operator* (double a, shared_ptr<NonlinearFunction> f)
   {
     return make_shared<ScaleFunction>(f, a);
   }
 
 
 
+
+  // fa(fb)
+  class ComposeFunction : public NonlinearFunction
+  {
+    shared_ptr<NonlinearFunction> fa_, fb_;
+  public:
+    ComposeFunction (shared_ptr<NonlinearFunction> fa,
+                     shared_ptr<NonlinearFunction> fb)
+      : fa_(fa), fb_(fb) { } 
+    
+    size_t DimX() const override { return fb_->DimX(); }
+    size_t DimF() const override { return fa_->DimF(); }
+    void Evaluate (VectorView<double> x, VectorView<double> f) const override
+    {
+      Vector<> tmp(fb_->DimF());
+      fb_->Evaluate (x, tmp);
+      fa_->Evaluate (tmp, f);
+    }
+    void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
+    {
+      Vector<> tmp(fb_->DimF());
+      fb_->Evaluate (x, tmp);
+      
+      Matrix<> jaca(fa_->DimF(), fa_->DimX());
+      Matrix<> jacb(fb_->DimF(), fb_->DimX());
+      
+      fb_->EvaluateDeriv(x, jacb);
+      fa_->EvaluateDeriv(tmp, jaca);
+
+      df = jaca*jacb;
+    }
+  };
+  
+  
+  inline auto Compose (shared_ptr<NonlinearFunction> fa, shared_ptr<NonlinearFunction> fb)
+  {
+    return make_shared<ComposeFunction> (fa, fb);
+  }
+  
 
   class EmbedFunction : public NonlinearFunction
   {

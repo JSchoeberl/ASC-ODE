@@ -22,6 +22,9 @@ add_executable (test_verlet tests/test_verlet.cc)
 target_sources (test_verlet PUBLIC src/ode.h src/nonlinfunc.h)
 target_link_libraries (test_verlet PUBLIC ngbla)
 
+add_executable (test_newmark tests/test_newmark.cc)
+target_sources (test_newmark PUBLIC src/ode.h src/nonlinfunc.h)
+target_link_libraries (test_newmark PUBLIC ngbla)
 
 add_executable (test_shake tests/test_shake.cc)
 target_sources (test_shake PUBLIC src/ode.h src/nonlinfunc.h)

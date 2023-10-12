@@ -108,10 +108,53 @@ namespace ASC_ode
       }
   }
   
+
+  
+  // Newmark and generalized alpha:
+  // https://miaodi.github.io/finite%20element%20method/newmark-generalized/
+  
+
+  // Newmark method for d^2x/dt^2 = rhs
+  void SolveODE_Newmark(double tend, double dt,
+                        VectorView<double> x, VectorView<double> dx,
+                        shared_ptr<NonlinearFunction> rhs,   // x->f(x)
+                        std::function<void(double,VectorView<double>)> callback = nullptr)
+  {
+    double gamma = 0.5;
+    double beta = 0.25;
+
+    Vector<> a(x.Size());
+    Vector<> v(x.Size());
+
+    auto xold = make_shared<ConstantFunction>(x);
+    auto vold = make_shared<ConstantFunction>(dx);
+    auto aold = make_shared<ConstantFunction>(x);
+    rhs->Evaluate (xold->Get(), aold->Get());
+    
+    auto anew = make_shared<IdenticFunction>(a.Size());
+    auto vnew = vold + dt*((1-gamma)*aold+gamma*anew);
+    auto xnew = xold + dt*vold + dt*dt/2 * ((1-2*beta)*aold+2*beta*anew);    
+
+    auto equ = anew - Compose(rhs, xnew);
+
+    double t = 0;
+    while (t < tend)
+      {
+        NewtonSolver (equ, a);
+        xnew -> Evaluate (a, x);
+        vnew -> Evaluate (a, v);
+
+        xold->Set(x);
+        vold->Set(v);
+        aold->Set(a);
+        if (callback) callback(t, x);
+        t += dt;
+      }
+    dx = v;
+  }
+
+
 }
 
-
-// Newmark and generalized alpha:
-// https://miaodi.github.io/finite%20element%20method/newmark-generalized/
 
 #endif

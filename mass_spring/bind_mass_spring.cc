@@ -8,6 +8,8 @@
 namespace py = pybind11;
 
 PYBIND11_MAKE_OPAQUE(std::vector<Mass<3>>);
+PYBIND11_MAKE_OPAQUE(std::vector<Fix<3>>);
+PYBIND11_MAKE_OPAQUE(std::vector<Spring>);
 
 PYBIND11_MODULE(mass_spring, m) {
     m.doc() = "mass-spring-system simulator"; 
@@ -32,7 +34,6 @@ PYBIND11_MODULE(mass_spring, m) {
                              [](Mass<3> & m) { return m.pos; });
     ;
 
-    py::bind_vector<std::vector<Mass<3>>>(m, "Masses3d");
     
     m.def("Mass", [](double m, std::array<double,3> p)
     {
@@ -54,8 +55,14 @@ PYBIND11_MODULE(mass_spring, m) {
 
     py::class_<Spring> (m, "Spring")
       .def(py::init<double, double, std::array<Connector,2>>())
+      .def_property_readonly("connections",
+                             [](Spring & s) { return s.connections; })
       ;
 
+    
+    py::bind_vector<std::vector<Mass<3>>>(m, "Masses3d");
+    py::bind_vector<std::vector<Fix<3>>>(m, "Fixes3d");
+    py::bind_vector<std::vector<Spring>>(m, "Springs");        
     
     
     py::class_<MassSpringSystem<2>> (m, "MassSpringSystem2d")
@@ -77,8 +84,13 @@ PYBIND11_MODULE(mass_spring, m) {
       .def("Add", [](MassSpringSystem<3> & mss, Fix<3> f) { return mss.AddFix(f); })
       .def("Add", [](MassSpringSystem<3> & mss, Spring s) { return mss.AddSpring(s); })            
       .def_property_readonly("masses", [](MassSpringSystem<3> & mss) -> auto& { return mss.Masses(); })
-      .def_property_readonly("fixes", [](MassSpringSystem<3> & mss) { return mss.Fixes(); })      
-
+      .def_property_readonly("fixes", [](MassSpringSystem<3> & mss) -> auto& { return mss.Fixes(); })
+      .def_property_readonly("springs", [](MassSpringSystem<3> & mss) -> auto& { return mss.Springs(); })            
+      .def("__getitem__", [](MassSpringSystem<3> mss, Connector & c) {
+        if (c.type==Connector::FIX) return py::cast(mss.Fixes()[c.nr]);
+        else return py::cast(mss.Masses()[c.nr]);
+      })
+      
       .def("GetState", [] (MassSpringSystem<3> & mss) {
         Vector<> x(3*mss.Masses().size());
         Vector<> dx(3*mss.Masses().size());

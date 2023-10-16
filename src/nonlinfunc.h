@@ -174,7 +174,6 @@ namespace ASC_ode
     return make_shared<ComposeFunction> (fa, fb);
   }
   
-
   class EmbedFunction : public NonlinearFunction
   {
     shared_ptr<NonlinearFunction> fa_;
@@ -204,29 +203,26 @@ namespace ASC_ode
     }
   };
 
-
-  class ProjectFunction : public NonlinearFunction
+  
+  class Projector : public NonlinearFunction
   {
-    shared_ptr<NonlinearFunction> fa_;
-    size_t first_, next_;
+    size_t size_, first_, next_;
   public:
-    ProjectFunction (shared_ptr<NonlinearFunction> fa,
-                   size_t first, size_t next)
-      : fa_(fa), first_(first), next_(next) { }
+    Projector (size_t size, 
+               size_t first, size_t next)
+      : size_(size), first_(first), next_(next) { }
     
-    size_t DimX() const override { return fa_->DimX(); }
-    size_t DimF() const override { return fa_->DimF(); }
+    size_t DimX() const override { return size_; }
+    size_t DimF() const override { return size_; }
     void Evaluate (VectorView<double> x, VectorView<double> f) const override
     {
-      fa_->Evaluate(x, f);
-      f.Range(0, first_) = 0;
-      f.Range(next_, DimF()) = 0;
+      f = 0.0;
+      f.Range(first_, next_) = x.Range(first_, next_);
     }
     void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const override
     {
-      fa_->EvaluateDeriv(x, df);
-      df.Rows(0, first_) = 0;
-      df.Rows(next_, DimF()) = 0;
+      df = 0.0;
+      df.Diag().Range(first_, next_) = 1;
     }
   };
 

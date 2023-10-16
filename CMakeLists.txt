@@ -30,5 +30,9 @@ add_executable (test_shake tests/test_shake.cc)
 target_sources (test_shake PUBLIC src/ode.h src/nonlinfunc.h)
 target_link_libraries (test_shake PUBLIC ngbla)
 
+add_executable (test_alpha tests/test_alpha.cc)
+target_sources (test_alpha PUBLIC src/ode.h src/nonlinfunc.h)
+target_link_libraries (test_alpha PUBLIC ngbla)
+
 
 add_subdirectory (mass_spring)

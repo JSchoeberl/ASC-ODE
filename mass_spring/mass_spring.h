@@ -20,6 +20,7 @@ public:
   double mass;
   Vec<D> pos;
   Vec<D> vel = 0.0;
+  Vec<D> acc = 0.0;
 };
 
 
@@ -89,27 +90,31 @@ public:
   auto & Masses() { return masses; } 
   auto & Springs() { return springs; }
 
-  void GetState (VectorView<> values, VectorView<> dvalues)
+  void GetState (VectorView<> values, VectorView<> dvalues, VectorView<> ddvalues)
   {
     auto valmat = values.AsMatrix(Masses().size(), D);
     auto dvalmat = dvalues.AsMatrix(Masses().size(), D);
+    auto ddvalmat = ddvalues.AsMatrix(Masses().size(), D);    
 
     for (size_t i = 0; i < Masses().size(); i++)
       {
         valmat.Row(i) = Masses()[i].pos;
         dvalmat.Row(i) = Masses()[i].vel;
+        ddvalmat.Row(i) = Masses()[i].acc;
       }
   }
   
-  void SetState (VectorView<> values, VectorView<> dvalues)
+  void SetState (VectorView<> values, VectorView<> dvalues, VectorView<> ddvalues)
   {
     auto valmat = values.AsMatrix(Masses().size(), D);
     auto dvalmat = dvalues.AsMatrix(Masses().size(), D);
+    auto ddvalmat = ddvalues.AsMatrix(Masses().size(), D);
 
     for (size_t i = 0; i < Masses().size(); i++)
       {
         Masses()[i].pos = valmat.Row(i);
         Masses()[i].vel = dvalmat.Row(i);
+        Masses()[i].acc = ddvalmat.Row(i);        
       }
   }
 };
@@ -182,7 +187,7 @@ public:
   virtual void EvaluateDeriv (VectorView<double> x, MatrixView<double> df) const
   {
     // TODO: exact differentiation
-    double eps = 1e-6;
+    double eps = 1e-8;
     Vector<> xl(DimX()), xr(DimX()), fl(DimF()), fr(DimF());
     for (size_t i = 0; i < DimX(); i++)
       {

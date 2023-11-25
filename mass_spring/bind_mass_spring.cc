@@ -94,7 +94,8 @@ PYBIND11_MODULE(mass_spring, m) {
       .def("GetState", [] (MassSpringSystem<3> & mss) {
         Vector<> x(3*mss.Masses().size());
         Vector<> dx(3*mss.Masses().size());
-        mss.GetState (x, dx);
+        Vector<> ddx(3*mss.Masses().size());
+        mss.GetState (x, dx, ddx);
         return x;
       })
       ;
@@ -103,16 +104,17 @@ PYBIND11_MODULE(mass_spring, m) {
     m.def("Simulate", [](MassSpringSystem<3> & mss, double tend, size_t steps) {
       Vector<> x(3*mss.Masses().size());
       Vector<> dx(3*mss.Masses().size());
-      mss.GetState (x, dx);
+      Vector<> ddx(3*mss.Masses().size());
+      mss.GetState (x, dx, ddx);
       
       auto mss_func = make_shared<MSS_Function<3>> (mss);
       auto mass = make_shared<IdenticFunction> (x.Size());      
       
       // SolveODE_Verlet(tend, tend/steps, x, dx, mss_func);
       
-      SolveODE_Alpha(tend, tend/steps, 0.8, x, dx, mss_func, mass);
+      SolveODE_Alpha(tend, tend/steps, 0.8, x, dx, ddx, mss_func, mass);
 
-      mss.SetState (x, dx);
+      mss.SetState (x, dx, ddx);
     });
       
     

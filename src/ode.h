@@ -160,7 +160,7 @@ namespace ASC_ode
 
   // Generalized alpha method for M d^2x/dt^2 = rhs
   void SolveODE_Alpha (double tend, double dt, double rhoinf,
-                       VectorView<double> x, VectorView<double> dx,
+                       VectorView<double> x, VectorView<double> dx, VectorView<double> ddx,
                        shared_ptr<NonlinearFunction> rhs,   
                        shared_ptr<NonlinearFunction> mass,  
                        std::function<void(double,VectorView<double>)> callback = nullptr)
@@ -175,8 +175,8 @@ namespace ASC_ode
 
     auto xold = make_shared<ConstantFunction>(x);
     auto vold = make_shared<ConstantFunction>(dx);
-    auto aold = make_shared<ConstantFunction>(x);
-    rhs->Evaluate (xold->Get(), aold->Get()); // solve with M ???
+    auto aold = make_shared<ConstantFunction>(ddx);
+    // rhs->Evaluate (xold->Get(), aold->Get()); // solve with M ???
     
     auto anew = make_shared<IdenticFunction>(a.Size());
     auto vnew = vold + dt*((1-gamma)*aold+gamma*anew);
@@ -186,7 +186,7 @@ namespace ASC_ode
     auto equ = Compose(mass, (1-alpham)*anew+alpham*aold) - (1-alphaf)*Compose(rhs,xnew) - alphaf*Compose(rhs, xold);
 
     double t = 0;
-    a = 0.0;
+    a = ddx;
     while (t < tend)
       {
         NewtonSolver (equ, a);
@@ -200,6 +200,7 @@ namespace ASC_ode
         t += dt;
       }
     dx = v;
+    ddx = a;
   }
 
   

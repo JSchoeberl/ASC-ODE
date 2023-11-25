@@ -22,10 +22,11 @@ int main()
   
   Vector<> x(2*mss.Masses().size());
   Vector<> dx(2*mss.Masses().size());  
+  Vector<> ddx(2*mss.Masses().size());  
 
-  mss.GetState (x, dx);
+  mss.GetState (x, dx, ddx);
   
-  SolveODE_Verlet(tend, dt, x, dx, mss_func,
+  SolveODE_Verlet(tend, dt, x, dx,  mss_func,
                   [](double t, VectorView<double> x) { cout << "t = " << t
                                                             << ", x = " << Vec<4>(x) << endl; });
 }

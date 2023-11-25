@@ -3,10 +3,15 @@ project(ASC_ode)
 
 set (CMAKE_CXX_STANDARD 17)
 
-include_directories(src)
-include_directories(/Applications/Netgen.app/Contents/Resources/include)
 
-link_directories(/Applications/Netgen.app/Contents/MacOS)
+find_package(NGSolve CONFIG REQUIRED
+  HINTS /usr $ENV{NETGENDIR}/.. /tmp/inst/usr /opt/netgen/ /Applications/Netgen.app/Contents/Resources/CMake C:/netgen
+)
+
+
+include_directories(src)
+# include_directories(/Applications/Netgen.app/Contents/Resources/include)
+# link_directories(/Applications/Netgen.app/Contents/MacOS)
 
 add_subdirectory (src)
 
